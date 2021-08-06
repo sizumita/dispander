@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import Optional
 import os
 
@@ -20,11 +21,11 @@ DELETE_REACTION_EMOJI = os.environ.get("DELETE_REACTION_EMOJI", "\U0001f5d1")
 
 
 class ExpandDiscordMessageUrl(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: discord.Client):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_message(self, message):
+    async def on_message(self, message: discord.Message):
         if message.author.bot:
             return
         await dispand(message)
@@ -79,7 +80,7 @@ async def _delete_dispand(bot: discord.Client, message: discord.Message, operato
             await extra_message.delete()
 
 
-async def dispand(message):
+async def dispand(message: discord.Message):
     messages = await extract_message(message)
     for m in messages:
         sent_messages = []
@@ -112,7 +113,7 @@ async def dispand(message):
         await main_message.edit(embed=main_embed)
 
 
-async def extract_message(message):
+async def extract_message(message: discord.Message):
     messages = []
     for ids in re.finditer(regex_discord_message_url, message.content):
         if message.guild.id != int(ids['guild']):
@@ -126,13 +127,16 @@ async def extract_message(message):
     return messages
 
 
-async def fetch_message_from_id(guild, channel_id, message_id):
-    channel = guild.get_channel(channel_id)
+async def fetch_message_from_id(guild: discord.Guild, channel_id: int, message_id: int):
+    channel = guild.get_channel_or_thread(channel_id)
+
     message = await channel.fetch_message(message_id)
     return message
 
 
-def make_jump_url(base_message, dispand_message, extra_messages):
+def make_jump_url(base_message: discord.Message,
+                  dispand_message: discord.Message,
+                  extra_messages: list[discord.Message]):
     """
     make jump url which include more information
     :param base_message: メッセージリンクが貼られていたメッセージ
@@ -150,7 +154,7 @@ def make_jump_url(base_message, dispand_message, extra_messages):
     )
 
 
-def from_jump_url(url):
+def from_jump_url(url: str):
     """
     メッセージリンクから情報を取得します。
     :param url: メッセージリンク
@@ -165,19 +169,19 @@ def from_jump_url(url):
     }
 
 
-def compose_embed(message):
+def compose_embed(message: discord.Message):
     embed = Embed(
         description=message.content,
         timestamp=message.created_at,
     )
     embed.set_author(
         name=message.author.display_name,
-        icon_url=message.author.avatar.replace(format="png"),
+        icon_url=message.author.avatar.replace(format="png").url,
         url=message.jump_url
     )
     embed.set_footer(
         text=message.channel.name,
-        icon_url=message.guild.icon.replace(format="png"),
+        icon_url=message.guild.icon.replace(format="png").url,
     )
     if message.attachments and message.attachments[0].proxy_url:
         embed.set_image(
